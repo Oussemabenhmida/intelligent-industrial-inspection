@@ -31,5 +31,5 @@ message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
 # Subdirectories (uncomment as we build each one)
-# add_subdirectory(firmware)
+add_subdirectory(firmware)
 # add_subdirectory(tests)
