@@ -2,6 +2,7 @@ add_library(hal
     hal_gpio.c
     hal_uart.c
     ring_buffer.c
+    crc.c
 )
 
 target_include_directories(hal PUBLIC
@@ -28,3 +29,8 @@ add_executable(rb_smoke_test
     rb_smoke_test.c
 )
 target_link_libraries(rb_smoke_test PRIVATE hal)
+
+add_executable(crc_smoke_test
+    crc_smoke_test.c
+)
+target_link_libraries(crc_smoke_test PRIVATE hal)
