@@ -1,10 +1,7 @@
 #include "controller.h"
+#include "tcp_listener.h"
 #include "firmware/hal/crc.h"
 #include <stdio.h>
-
-/* ─────────────────────────────────────────────
-   FreeRTOS hook functions — required by kernel
-───────────────────────────────────────────── */
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
@@ -19,14 +16,10 @@ void vApplicationMallocFailedHook(void)
     for (;;) {}
 }
 
-/* ─────────────────────────────────────────────
-   Main entry point
-───────────────────────────────────────────── */
-
 int main(void)
 {
     printf("=== Intelligent Industrial Inspection Controller ===\n");
-    printf("Initializing...\n\n");
+    printf("Waiting for Jetson connection on TCP port 5000...\n\n");
 
     CRC16_Init();
 
@@ -43,12 +36,16 @@ int main(void)
 
     gSystemState = STATE_IDLE;
 
-    xTaskCreate(vLoggerTask,        "Logger",   STACK_LOGGER,        NULL, PRIORITY_LOGGER,        NULL);
-    xTaskCreate(vWatchdogTask,      "Watchdog", STACK_WATCHDOG,      NULL, PRIORITY_WATCHDOG,       NULL);
-    xTaskCreate(vDiagnosticsTask,   "Diag",     STACK_DIAGNOSTICS,   NULL, PRIORITY_DIAGNOSTICS,    NULL);
-    xTaskCreate(vCommunicationTask, "CommTask", STACK_COMMUNICATION, NULL, PRIORITY_COMMUNICATION,  NULL);
-    xTaskCreate(vInspectionTask,    "InspTask", STACK_INSPECTION,    NULL, PRIORITY_INSPECTION,     NULL);
-    xTaskCreate(vControlTask,       "CtrlTask", STACK_CONTROL,       NULL, PRIORITY_CONTROL,        NULL);
+    /* Logger first so all startup messages appear */
+    xTaskCreate(vLoggerTask,      "Logger",   STACK_LOGGER,        NULL, PRIORITY_LOGGER,       NULL);
+    xTaskCreate(vWatchdogTask,    "Watchdog", STACK_WATCHDOG,      NULL, PRIORITY_WATCHDOG,      NULL);
+    xTaskCreate(vDiagnosticsTask, "Diag",     STACK_DIAGNOSTICS,   NULL, PRIORITY_DIAGNOSTICS,   NULL);
+
+    /* TCP listener replaces simulated CommunicationTask */
+    xTaskCreate(vTCPListenerTask, "TCPListen", TCP_STACK_SIZE,     NULL, PRIORITY_COMMUNICATION, NULL);
+
+    xTaskCreate(vInspectionTask,  "InspTask", STACK_INSPECTION,    NULL, PRIORITY_INSPECTION,    NULL);
+    xTaskCreate(vControlTask,     "CtrlTask", STACK_CONTROL,       NULL, PRIORITY_CONTROL,        NULL);
 
     printf("Tasks created. Starting scheduler...\n\n");
 
