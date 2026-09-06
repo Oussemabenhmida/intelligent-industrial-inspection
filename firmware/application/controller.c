@@ -186,9 +186,42 @@ void vDiagnosticsTask(void *pvParameters)
 {
     (void)pvParameters;
     LOG_Send(LOG_INFO, "DiagnosticsTask started");
+
+    static BaseType_t report_done = pdFALSE;
+
     for (;;) {
         WATCHDOG_Kick(WD_TASK_DIAGNOSTICS);
         vTaskDelay(pdMS_TO_TICKS(2000));
+
+        /* Print memory report once after 10 seconds */
+        if (report_done == pdFALSE &&
+            xTaskGetTickCount() > pdMS_TO_TICKS(10000)) {
+
+            printf("\n========================================\n");
+            printf("  MEMORY MODEL REPORT\n");
+            printf("========================================\n");
+            printf("  Heap total : %u bytes\n",
+                   (unsigned)configTOTAL_HEAP_SIZE);
+            printf("  Heap free  : %u bytes\n",
+                   (unsigned)xPortGetFreeHeapSize());
+            printf("  Heap used  : %u bytes\n",
+                   (unsigned)(configTOTAL_HEAP_SIZE - xPortGetFreeHeapSize()));
+            printf("----------------------------------------\n");
+            printf("  %-16s  %s\n", "Task", "Stack HWM (words free)");
+            printf("----------------------------------------\n");
+
+            TaskStatus_t tasks[12];
+            UBaseType_t count = uxTaskGetSystemState(tasks, 12, NULL);
+            for (UBaseType_t i = 0; i < count; i++) {
+                printf("  %-16s  %u\n",
+                       tasks[i].pcTaskName,
+                       (unsigned)tasks[i].usStackHighWaterMark);
+            }
+            printf("========================================\n\n");
+            fflush(stdout);
+            report_done = pdTRUE;
+        }
+
         char buf[64];
         SystemState state;
         if (xSemaphoreTake(xStateMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
